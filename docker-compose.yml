@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  spark-master:
+    image: bitnami/spark:latest
+    container_name: spark-master
+    ports:
+      - "8080:8080" #spark-master UI
+      - "7077:7077" #spark-master URL
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    volumes:
+      - ./spark-apps:/opt/bitnami/spark/apps
+      - ./data:/data
+      - ./jars/postgresql-42.7.3.jar:/opt/bitnami/spark/jars/postgresql.jar
+
+  spark-worker-1:
+    image: bitnami/spark:latest
+    container_name: spark-worker-1
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=1
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    volumes:
+      - ./spark-apps:/opt/bitnami/spark/apps
+      - ./data:/data
+      - ./jars/postgresql-42.7.3.jar:/opt/bitnami/spark/jars/postgresql.jar
+
+  spark-worker-2:
+    image: bitnami/spark:latest
+    container_name: spark-worker-2
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=1
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    volumes:
+      - ./spark-apps:/opt/bitnami/spark/apps
+      - ./data:/data
+      - ./jars/postgresql-42.7.3.jar:/opt/bitnami/spark/jars/postgresql.jar
+
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=data_warehouse
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  jupyter:
+    image: jupyter/datascience-notebook
+    container_name: jupyter
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./notebooks:/home/jovyan/work
+      - ./data:/data
+    environment:
+      - JUPYTER_TOKEN=password
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
